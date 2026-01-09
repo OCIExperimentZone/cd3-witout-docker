@@ -1,0 +1,137 @@
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║         CD3 TOOLKIT SETUP - START HERE                         ║
+║         No Docker / No Jenkins Setup                           ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
+
+📖 DOCUMENTATION - SIMPLE STRUCTURE
+═══════════════════════════════════════════════════════════════
+
+🎯 FOR NEW USERS:
+
+   1. READ THIS FILE FIRST ✓ (You are here!)
+   
+   2. Open: README_SETUP.md
+      └─> Complete setup guide for all platforms
+          • Ubuntu instructions
+          • macOS instructions  
+          • Windows instructions
+          • OCI configuration
+          • Troubleshooting
+   
+   3. Run the installer:
+      • Linux/macOS: ./quick_install_cd3.sh
+      • Windows: Follow README_SETUP.md
+   
+   4. Done! ✓
+
+═══════════════════════════════════════════════════════════════
+
+📁 KEY FILES:
+
+   README_SETUP.md          ⭐ MAIN GUIDE - Start here!
+   requirements.txt         📦 Python packages to install
+   DOCUMENTATION_INDEX.md   📚 Full file index
+
+═══════════════════════════════════════════════════════════════
+
+🔧 INSTALLATION SCRIPTS:
+
+   quick_install_cd3.sh     🚀 Auto installer (Linux/macOS)
+   install_packages.sh      📦 Package installer only
+   verify_versions.sh       ✅ Check installation
+   fix_https_errors.sh      🔧 Fix HTTPS issues (Linux/macOS)
+   fix_https_errors.ps1     🔧 Fix HTTPS issues (Windows)
+
+═══════════════════════════════════════════════════════════════
+
+📖 REFERENCE DOCS (Optional):
+
+   PYTHON312_COMPATIBILITY.md      Python 3.12 compatibility
+   COMPATIBILITY_FIX_SUMMARY.md    Recent compatibility fixes
+   VERSION_INFO.md                 Detailed version info
+
+═══════════════════════════════════════════════════════════════
+
+⚡ QUICK START:
+
+   Ubuntu/macOS:
+   $ cd ~/Desktop/Personal_DevOps/CD3
+   $ ./quick_install_cd3.sh
+   
+   Windows:
+   > Open README_SETUP.md
+   > Follow Windows section
+
+═══════════════════════════════════════════════════════════════
+
+📋 WHAT GETS INSTALLED:
+
+   ✓ Python 3.12 (or 3.10 fallback)
+   ✓ Terraform 1.13
+   ✓ OCI CLI 3.66.1
+   ✓ All required Python packages
+   ✓ Virtual environment
+
+═══════════════════════════════════════════════════════════════
+
+🆘 COMMON ISSUES:
+
+   "Python packages not installing"
+   → Use Python 3.12 or 3.10
+   → Run: pip install -r requirements.txt
+   
+   "HTTPS/SSL errors"
+   → Run: ./fix_https_errors.sh
+   
+   "OCI authentication failed"
+   → Check ~/.oci/config fingerprint
+   → See README_SETUP.md "Configure OCI" section
+
+═══════════════════════════════════════════════════════════════
+
+📚 OLD DOCUMENTATION (Archived):
+
+   These files contain same info but in longer form.
+   You can ignore them and use README_SETUP.md instead:
+   
+   • START_HERE.md
+   • QUICK_START.md
+   • SETUP_GUIDE_NO_DOCKER.md
+   • README_SETUP_SCRIPTS.md
+   • CHANGES_SUMMARY.md
+
+═══════════════════════════════════════════════════════════════
+
+🎯 NEXT STEPS:
+
+   1. ✓ You've read this file
+   2. → Open README_SETUP.md
+   3. → Run quick_install_cd3.sh (or follow manual steps)
+   4. → Configure OCI
+   5. → Run CD3!
+
+═══════════════════════════════════════════════════════════════
+
+📞 GET HELP:
+
+   • Check README_SETUP.md "Common Issues" section
+   • Run: ./verify_versions.sh
+   • GitHub: github.com/oracle-devrel/cd3-automation-toolkit
+
+═══════════════════════════════════════════════════════════════
+
+✨ SUMMARY:
+
+   READ:  README_SETUP.md
+   RUN:   ./quick_install_cd3.sh
+   CHECK: ./verify_versions.sh
+   
+   That's it! Simple. ✓
+
+═══════════════════════════════════════════════════════════════
+
+Last Updated: 2026-01-09
+Version: 2.0 (Simplified Documentation Structure)
+
