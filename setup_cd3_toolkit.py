@@ -1,0 +1,560 @@
+#!/usr/bin/env python3
+"""
+CD3 Automation Toolkit Setup Script
+Installs all dependencies and sets up CD3 toolkit locally without Docker
+"""
+
+import os
+import sys
+import platform
+import subprocess
+import urllib.request
+import zipfile
+import json
+import shutil
+from pathlib import Path
+
+class CD3Setup:
+    def __init__(self):
+        self.os_type = platform.system()
+        self.home_dir = Path.home()
+        self.script_dir = Path(__file__).parent.absolute()  # Directory where script is located
+        self.cd3_dir = None  # Will be set based on user choice
+        self.python_version = f"{sys.version_info.major}.{sys.version_info.minor}"
+        
+    def print_header(self, message):
+        """Print formatted header"""
+        print("\n" + "="*60)
+        print(f"  {message}")
+        print("="*60 + "\n")
+    
+    def run_command(self, command, shell=True, check=True):
+        """Run shell command and return result"""
+        try:
+            print(f"Running: {command}")
+            result = subprocess.run(
+                command,
+                shell=shell,
+                check=check,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            if result.stdout:
+                print(result.stdout)
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"Error: {e.stderr}")
+            return False
+    
+    def check_command_exists(self, command):
+        """Check if a command exists"""
+        try:
+            subprocess.run(
+                ["which", command] if self.os_type != "Windows" else ["where", command],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            return True
+        except subprocess.CalledProcessError:
+            return False
+    
+    def detect_os(self):
+        """Detect operating system"""
+        self.print_header("Detecting Operating System")
+        print(f"OS Type: {self.os_type}")
+        print(f"Platform: {platform.platform()}")
+        print(f"Python Version: {self.python_version}")
+        
+        if self.os_type not in ["Linux", "Darwin", "Windows"]:
+            print(f"Unsupported OS: {self.os_type}")
+            sys.exit(1)
+        
+        return self.os_type
+    
+    def install_homebrew_macos(self):
+        """Install Homebrew on macOS"""
+        if self.check_command_exists("brew"):
+            print("✓ Homebrew already installed")
+            return True
+        
+        print("Installing Homebrew...")
+        install_cmd = '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+        return self.run_command(install_cmd)
+    
+    def install_git(self):
+        """Install Git"""
+        self.print_header("Installing Git")
+        
+        if self.check_command_exists("git"):
+            print("✓ Git already installed")
+            return True
+        
+        if self.os_type == "Darwin":  # macOS
+            return self.run_command("brew install git")
+        elif self.os_type == "Linux":
+            if self.check_command_exists("apt-get"):
+                return self.run_command("sudo apt-get update && sudo apt-get install -y git")
+            elif self.check_command_exists("yum"):
+                return self.run_command("sudo yum install -y git")
+            elif self.check_command_exists("dnf"):
+                return self.run_command("sudo dnf install -y git")
+        elif self.os_type == "Windows":
+            print("Please install Git from: https://git-scm.com/download/win")
+            return False
+        
+        return False
+    
+    def install_python_packages(self):
+        """Install required Python packages"""
+        self.print_header("Installing Python Packages")
+        
+        packages = [
+            "oci-cli==3.66.1",
+            "azure.identity",
+            "azure.mgmt.compute",
+            "azure.mgmt.oracledatabase",
+            "pycryptodomex==3.10.1",
+            "regex==2022.10.31",
+            "numpy==1.26.4",
+            "pandas==1.1.5",
+            "openpyxl==3.0.7",
+            "xlrd==1.2.0",
+            "xlsxwriter==3.2.0",
+            "wget==3.2",
+            "requests==2.28.2",
+            "netaddr==0.8.0",
+            "cfgparse==1.3",
+            "ipaddress==1.0.23",
+            "Jinja2==3.1.2",
+            "simplejson==3.18.3",
+            "GitPython==3.1.40",
+            "PyYAML==6.0.1",
+            "ansible==8.7.0",
+        ]
+
+        print("Installing required Python packages (pinned versions)...")
+        for package in packages:
+            print(f"\nInstalling {package}...")
+            # Use --user to match requested install style
+            self.run_command(f"{sys.executable} -m pip install --user {package}")
+
+        print("\n✓ All Python packages (attempted) installed")
+        return True
+
+    def get_latest_terraform_version(self):
+        """Query HashiCorp checkpoint API to get latest Terraform version"""
+        try:
+            url = "https://checkpoint-api.hashicorp.com/v1/check/terraform"
+            with urllib.request.urlopen(url, timeout=10) as resp:
+                data = resp.read().decode()
+            j = json.loads(data)
+            version = j.get("current_version")
+            if version:
+                print(f"Latest Terraform version available: {version}")
+                return version
+        except Exception as e:
+            print(f"Could not determine latest Terraform version: {e}")
+        return None
+    
+    def install_terraform(self):
+        """Install Terraform"""
+        self.print_header("Installing Terraform")
+        
+        if self.check_command_exists("terraform"):
+            print("✓ Terraform already installed")
+            self.run_command("terraform version")
+            return True
+        
+        # Prefer installing latest release directly for reproducibility
+        latest = self.get_latest_terraform_version()
+
+        if self.os_type == "Darwin":  # macOS
+            # Homebrew usually provides up-to-date Terraform; attempt upgrade first
+            brew_cmds = [
+                "brew update",
+                "brew tap hashicorp/tap",
+                "brew install hashicorp/tap/terraform || brew upgrade hashicorp/tap/terraform"
+            ]
+            for cmd in brew_cmds:
+                if not self.run_command(cmd, check=False):
+                    print("Note: Homebrew install/upgrade may have failed. Falling back to direct download.")
+                    break
+
+            # If we couldn't install via Homebrew or we want a specific latest version, try direct install
+            if not self.check_command_exists("terraform") and latest:
+                os_name = "darwin"
+        elif self.os_type == "Linux":
+            os_name = "linux"
+        else:
+            print("Please install Terraform from: https://www.terraform.io/downloads")
+            return False
+
+        # If terraform already exists, show version and offer upgrade if it's older than latest
+        if self.check_command_exists("terraform"):
+            try:
+                out = subprocess.check_output(["terraform", "version"], text=True)
+                print(out)
+            except Exception:
+                pass
+            if latest:
+                try:
+                    installed_version = None
+                    ver_out = subprocess.check_output(["terraform", "version"], text=True).splitlines()[0]
+                    # terraform v1.3.9
+                    if ver_out.startswith("Terraform v") or ver_out.startswith("terraform "):
+                        installed_version = ver_out.split()[1].lstrip('v')
+                    if installed_version and installed_version != latest:
+                        print(f"Installed Terraform version: {installed_version}; latest: {latest}")
+                        response = input("Do you want to download and install the latest Terraform? (y/n): ").lower()
+                        if response != 'y':
+                            return True
+                    else:
+                        print("Terraform is up-to-date or version detection failed.")
+                        return True
+                except Exception:
+                    pass
+
+        # At this point, attempt direct download of the latest version if available
+        if not latest:
+            # Fallback to package managers for Linux when latest couldn't be determined
+            if self.os_type == "Linux":
+                commands = [
+                    "sudo apt-get update",
+                    "sudo apt-get install -y gnupg software-properties-common",
+                    "wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg",
+                    'echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list',
+                    "sudo apt-get update",
+                    "sudo apt-get install -y terraform"
+                ]
+                for cmd in commands:
+                    if not self.run_command(cmd, check=False):
+                        print("Note: If this fails, please install Terraform manually from: https://www.terraform.io/downloads")
+                return True
+            return False
+
+        arch_map = {
+            'x86_64': 'amd64',
+            'AMD64': 'amd64',
+            'aarch64': 'arm64',
+            'arm64': 'arm64'
+        }
+        machine = platform.machine()
+        arch = arch_map.get(machine, 'amd64')
+
+        download_filename = f"terraform_{latest}_{os_name}_{arch}.zip"
+        download_url = f"https://releases.hashicorp.com/terraform/{latest}/{download_filename}"
+
+        tmp_dir = Path('/tmp')
+        zip_path = tmp_dir / download_filename
+
+        print(f"Downloading Terraform from: {download_url}")
+        try:
+            urllib.request.urlretrieve(download_url, zip_path)
+        except Exception as e:
+            print(f"Failed to download Terraform: {e}")
+            return False
+
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as z:
+                z.extractall(tmp_dir)
+        except Exception as e:
+            print(f"Failed to unzip Terraform archive: {e}")
+            return False
+
+        terraform_bin = tmp_dir / 'terraform'
+        if not terraform_bin.exists():
+            print("Terraform binary not found in archive")
+            return False
+
+        target = Path('/usr/local/bin/terraform')
+        try:
+            # Use sudo to move binary into place
+            self.run_command(f"sudo mv {terraform_bin} {target}")
+            self.run_command(f"sudo chmod +x {target}")
+            print("✓ Terraform installed to /usr/local/bin/terraform")
+            self.run_command("terraform version")
+            return True
+        except Exception as e:
+            print(f"Failed to install Terraform binary: {e}")
+            return False
+        except Exception as e:
+            print(f"Failed to install Terraform binary: {e}")
+            return False
+        
+        return False
+    
+    def install_oci_cli(self):
+        """Install OCI CLI"""
+        self.print_header("Installing OCI CLI")
+        
+        if self.check_command_exists("oci"):
+            print("✓ OCI CLI already installed")
+            self.run_command("oci --version")
+            return True
+        
+        print("OCI CLI will be installed via pip (already done in Python packages)")
+        if self.check_command_exists("oci"):
+            print("✓ OCI CLI installed successfully")
+            return True
+        
+        print("Installing OCI CLI using installer script...")
+        if self.os_type in ["Darwin", "Linux"]:
+            install_cmd = "bash -c \"$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)\" -- --accept-all-defaults"
+            return self.run_command(install_cmd, check=False)
+        
+        return True
+    
+    def choose_installation_directory(self):
+        """Let user choose where to install CD3 toolkit"""
+        self.print_header("Choose Installation Location")
+        
+        print("Where would you like to install CD3 toolkit?")
+        print(f"1. Current directory (same as script): {self.script_dir}/cd3-automation-toolkit")
+        print(f"2. Home directory: {self.home_dir}/cd3-automation-toolkit")
+        print("3. Custom location (enter full path)")
+        
+        while True:
+            choice = input("\nEnter your choice (1/2/3) [default: 1]: ").strip() or "1"
+            
+            if choice == "1":
+                self.cd3_dir = self.script_dir / "cd3-automation-toolkit"
+                break
+            elif choice == "2":
+                self.cd3_dir = self.home_dir / "cd3-automation-toolkit"
+                break
+            elif choice == "3":
+                custom_path = input("Enter full path: ").strip()
+                if custom_path:
+                    self.cd3_dir = Path(custom_path) / "cd3-automation-toolkit"
+                    break
+                else:
+                    print("Invalid path. Please try again.")
+            else:
+                print("Invalid choice. Please enter 1, 2, or 3.")
+        
+        print(f"\n✓ CD3 toolkit will be installed at: {self.cd3_dir}")
+        return True
+    
+    def clone_cd3_toolkit(self):
+        """Clone CD3 toolkit from GitHub"""
+        self.print_header("Downloading CD3 Toolkit")
+        
+        if self.cd3_dir.exists():
+            print(f"CD3 toolkit directory already exists at: {self.cd3_dir}")
+            response = input("Do you want to update it? (y/n): ").lower()
+            if response == 'y':
+                print("Updating CD3 toolkit...")
+                os.chdir(self.cd3_dir)
+                return self.run_command("git pull")
+            else:
+                print("Skipping download...")
+                return True
+        
+        print(f"Cloning CD3 toolkit to: {self.cd3_dir}")
+        clone_cmd = f"git clone https://github.com/oracle-devrel/cd3-automation-toolkit.git {self.cd3_dir}"
+        
+        if not self.run_command(clone_cmd):
+            print("Failed to clone repository. Please check your internet connection.")
+            return False
+        
+        print("✓ CD3 toolkit downloaded successfully")
+        return True
+    
+    def install_cd3_dependencies(self):
+        """Install CD3 toolkit specific dependencies from requirements.txt"""
+        self.print_header("Installing CD3 Toolkit Dependencies")
+        
+        if not self.cd3_dir.exists():
+            print("CD3 toolkit not found. Please run clone_cd3_toolkit first.")
+            return False
+        
+        # Install CD3 toolkit Python dependencies
+        requirements_file = self.cd3_dir / "requirements.txt"
+        if requirements_file.exists():
+            print(f"Found requirements.txt at: {requirements_file}")
+            print("Installing CD3 toolkit specific dependencies...")
+            self.run_command(f"{sys.executable} -m pip install -r {requirements_file}")
+            print("✓ CD3 dependencies installed")
+        else:
+            print("⚠ No requirements.txt found, installing common packages...")
+            self.install_python_packages()
+        
+        return True
+    
+    def setup_cd3_environment(self):
+        """Setup CD3 environment"""
+        self.print_header("Setting up CD3 Environment")
+        
+        if not self.cd3_dir.exists():
+            print("CD3 toolkit not found. Please run clone_cd3_toolkit first.")
+            return False
+        
+        # Check necessary directories
+        directories = [
+            self.cd3_dir / "user-scripts",
+            self.cd3_dir / "setUpOCI",
+            self.cd3_dir / "cd3_automation_toolkit",
+        ]
+        
+        for directory in directories:
+            if directory.exists():
+                print(f"✓ Directory exists: {directory}")
+            else:
+                print(f"Note: Directory not found: {directory}")
+        
+        return True
+    
+    def configure_oci_cli(self):
+        """Configure OCI CLI"""
+        self.print_header("OCI CLI Configuration")
+        
+        oci_config = self.home_dir / ".oci" / "config"
+        
+        if oci_config.exists():
+            print(f"✓ OCI config already exists at: {oci_config}")
+            print("You can reconfigure it by running: oci setup config")
+        else:
+            print("OCI CLI needs to be configured.")
+            response = input("Do you want to configure it now? (y/n): ").lower()
+            if response == 'y':
+                self.run_command("oci setup config")
+            else:
+                print("You can configure it later by running: oci setup config")
+        
+        return True
+    
+    def verify_installation(self):
+        """Verify all installations"""
+        self.print_header("Verifying Installation")
+        
+        checks = [
+            ("Git", "git --version"),
+            ("Python", f"{sys.executable} --version"),
+            ("Pip", f"{sys.executable} -m pip --version"),
+            ("Terraform", "terraform version"),
+            ("OCI CLI", "oci --version"),
+        ]
+        
+        results = []
+        for name, command in checks:
+            print(f"\nChecking {name}...")
+            if self.run_command(command, check=False):
+                results.append((name, "✓ Installed"))
+            else:
+                results.append((name, "✗ Not found"))
+        
+        print("\n" + "="*60)
+        print("Installation Summary:")
+        print("="*60)
+        for name, status in results:
+            print(f"{name:15} : {status}")
+        
+        print(f"\nCD3 Toolkit Location: {self.cd3_dir}")
+        
+        return True
+    
+    def print_next_steps(self):
+        """Print next steps for user"""
+        self.print_header("Next Steps")
+        
+        print(f"""
+1. Configure OCI CLI (if not done):
+   oci setup config
+
+2. Navigate to CD3 toolkit directory:
+   cd {self.cd3_dir}
+
+3. Review the documentation:
+   cat README.md
+
+4. Set up your Excel template:
+   - Download the CD3 Excel template
+   - Fill in your infrastructure details
+
+5. Run CD3 toolkit:
+   cd {self.cd3_dir}
+   python setUpOCI.py
+
+6. For more information, visit:
+   https://github.com/oracle-devrel/cd3-automation-toolkit
+
+Note: Make sure you have:
+- OCI account credentials
+- Appropriate IAM permissions
+- OCI tenancy OCID
+- User OCID
+- API key pair
+
+Happy automating! 🚀
+        """)
+    
+    def run_full_setup(self):
+        """Run complete setup process"""
+        try:
+            self.print_header("CD3 Automation Toolkit Setup")
+            print("This script will install all dependencies for CD3 toolkit")
+            print("without using Docker.\n")
+            
+            # Detect OS
+            os_type = self.detect_os()
+            
+            # Install dependencies based on OS
+            if os_type == "Darwin":  # macOS
+                self.install_homebrew_macos()
+            
+            # Install core tools first
+            self.install_git()
+            self.install_terraform()
+            self.install_oci_cli()
+            
+            # Let user choose installation location
+            self.choose_installation_directory()
+            
+            # Download CD3 toolkit FIRST
+            self.clone_cd3_toolkit()
+            
+            # Install dependencies AFTER downloading CD3 (uses requirements.txt from CD3)
+            self.install_cd3_dependencies()
+            
+            # Setup CD3 environment
+            self.setup_cd3_environment()
+            
+            # Configure OCI CLI
+            self.configure_oci_cli()
+            
+            # Verify installation
+            self.verify_installation()
+            
+            # Print next steps
+            self.print_next_steps()
+            
+            self.print_header("Setup Complete!")
+            print("CD3 toolkit is ready to use!")
+            
+        except KeyboardInterrupt:
+            print("\n\nSetup interrupted by user.")
+            sys.exit(1)
+        except Exception as e:
+            print(f"\n\nError during setup: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+
+
+def main():
+    """Main entry point"""
+    print("""
+    ╔══════════════════════════════════════════════════════════╗
+    ║     CD3 Automation Toolkit - Local Setup Script         ║
+    ║     Oracle Cloud Infrastructure Automation               ║
+    ╚══════════════════════════════════════════════════════════╝
+    """)
+    
+    setup = CD3Setup()
+    setup.run_full_setup()
+
+
+if __name__ == "__main__":
+    main()
