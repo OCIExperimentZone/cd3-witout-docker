@@ -1,0 +1,48 @@
+╔════════════════════════════════════════════════════════════════════════╗
+║                  CD3 - EXACT COMMANDS FOR WSL                          ║
+║                  Copy these EXACTLY to WSL terminal                    ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+STEP 1: Go to the correct directory
+────────────────────────────────────────────────────────────────────────
+cd /home/pragadeeswar/cd3-without-docker/cd3-automation-toolkit/cd3_automation_toolkit
+
+
+STEP 2: Activate virtual environment
+────────────────────────────────────────────────────────────────────────
+source ../cd3venv/bin/activate
+
+
+STEP 3: Verify everything is correct
+────────────────────────────────────────────────────────────────────────
+pwd
+which python3
+
+
+STEP 4: Run CD3
+────────────────────────────────────────────────────────────────────────
+python3 setUpOCI.py
+
+OR
+
+python3 connectCloud.py oci connectOCI.properties
+
+
+═══════════════════════════════════════════════════════════════════════
+
+DIAGNOSTIC TOOL (if still not working):
+────────────────────────────────────────────────────────────────────────
+bash ../../diagnose_cd3.sh
+
+
+═══════════════════════════════════════════════════════════════════════
+
+IMPORTANT NOTES:
+────────────────────────────────────────────────────────────────────────
+1. Your prompt MUST show: (cd3venv) at the beginning
+2. The pwd command MUST show: .../cd3_automation_toolkit/cd3_automation_toolkit
+3. which python3 MUST show: .../cd3venv/bin/python3
+
+If any of these is wrong, CD3 WILL NOT WORK!
+
+═══════════════════════════════════════════════════════════════════════

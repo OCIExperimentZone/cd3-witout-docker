@@ -1,0 +1,90 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                           ║
+║                   ONE SCRIPT FOR EVERYTHING (WSL)                         ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+I've created ONE single script that does EVERYTHING for you!
+
+═══════════════════════════════════════════════════════════════════════════
+
+STEP 1: Copy the script to WSL
+───────────────────────────────────────────────────────────────────────────
+
+The script is: cd3_wsl_complete.sh
+
+Copy it to your WSL machine at:
+/home/pragadeeswar/cd3-without-docker/
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+STEP 2: Run the script
+───────────────────────────────────────────────────────────────────────────
+
+In WSL terminal, run:
+
+cd /home/pragadeeswar/cd3-without-docker
+chmod +x cd3_wsl_complete.sh
+bash cd3_wsl_complete.sh
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+WHAT THE SCRIPT DOES:
+───────────────────────────────────────────────────────────────────────────
+
+✓ Checks if CD3 directory exists
+✓ Checks if virtual environment exists
+✓ Activates virtual environment automatically
+✓ Checks if all Python packages are installed
+✓ Offers to install missing packages (if any)
+✓ Checks if CD3 files are complete
+✓ Tests if Python can import ocicloud
+✓ If everything is OK, gives you menu to run CD3
+
+═══════════════════════════════════════════════════════════════════════════
+
+WHAT YOU'LL SEE:
+───────────────────────────────────────────────────────────────────────────
+
+The script will show:
+- [1/6] Checking Directory...
+- [2/6] Checking Virtual Environment...
+- [3/6] Activating Virtual Environment...
+- [4/6] Checking Required Python Packages...
+- [5/6] Checking CD3 Files...
+- [6/6] Testing Python Import...
+
+If ANY step fails, it will tell you what's wrong and offer to fix it.
+
+If ALL steps pass, you'll get a menu:
+
+  1 - Run setUpOCI.py (Main CD3 menu)
+  2 - Run connectCloud.py oci connectOCI.properties
+  3 - Drop to shell (stay in directory with venv active)
+  4 - Exit
+
+═══════════════════════════════════════════════════════════════════════════
+
+IF PATHS ARE DIFFERENT:
+───────────────────────────────────────────────────────────────────────────
+
+Edit the script and change these lines at the top:
+
+CD3_BASE="/home/pragadeeswar/cd3-without-docker/cd3-automation-toolkit"
+CD3_TOOLKIT="${CD3_BASE}/cd3_automation_toolkit"
+VENV="${CD3_BASE}/cd3venv"
+
+═══════════════════════════════════════════════════════════════════════════
+
+THAT'S IT!
+───────────────────────────────────────────────────────────────────────────
+
+Just run ONE command:
+
+bash cd3_wsl_complete.sh
+
+And it handles EVERYTHING!
+
+═══════════════════════════════════════════════════════════════════════════
