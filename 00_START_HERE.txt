@@ -141,3 +141,6 @@ export REQUESTS_CA_BUNDLE="$SSL_CERT_FILE"
 
 # configure git to use same CA bundle
 git config --global http.sslCAInfo "$SSL_CERT_FILE"
+
+
+python -c "import ssl, certifi; ctx=ssl.create_default_context(cafile=certifi.where()); print('SSL OK' if ctx else 'SSL FAIL')"
