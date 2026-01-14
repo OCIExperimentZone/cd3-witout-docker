@@ -135,3 +135,9 @@
 Last Updated: 2026-01-09
 Version: 2.0 (Simplified Documentation Structure)
 
+# export CA bundle for Python requests and ssl
+export SSL_CERT_FILE="$(python -c 'import certifi; print(certifi.where())')"
+export REQUESTS_CA_BUNDLE="$SSL_CERT_FILE"
+
+# configure git to use same CA bundle
+git config --global http.sslCAInfo "$SSL_CERT_FILE"
